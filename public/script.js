@@ -1,7 +1,16 @@
-// Dark mode toggle
-document.getElementById("toggle-dark").addEventListener("click", () => {
-  document.documentElement.classList.toggle("dark");
+document.getElementById("dark-toggle").addEventListener("change", (e) => {
+  if (e.target.checked) {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
 });
+document.addEventListener("DOMContentLoaded", () => {
+  const darkToggle = document.getElementById("dark-toggle");
+  // Set switch position based on whether dark mode is active
+  darkToggle.checked = document.documentElement.classList.contains("dark");
+});
+
 
 // Main logic after DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
