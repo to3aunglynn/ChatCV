@@ -104,6 +104,19 @@
         class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg whitespace-pre-wrap border border-gray-300 dark:border-gray-600 max-h-[400px] overflow-y-auto dark:text-gray-100 text-sm sm:text-base"></pre>
     </div>
   </div>
+  <!-- Modal -->
+  <div id="alert-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-xs w-full shadow-lg text-center mx-auto">
+      <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Oops!</h3>
+      <p class="mb-6 text-gray-700 dark:text-gray-300 text-sm sm:text-base">
+        Please enter both your Resume and Job Description before downloading.
+      </p>
+      <button id="close-modal"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm sm:text-base transition">
+        OK
+      </button>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>

@@ -5,25 +5,26 @@ document.getElementById("dark-toggle").addEventListener("change", (e) => {
     document.documentElement.classList.remove("dark");
   }
 });
+
 document.addEventListener("DOMContentLoaded", () => {
   const darkToggle = document.getElementById("dark-toggle");
-  // Set switch position based on whether dark mode is active
   darkToggle.checked = document.documentElement.classList.contains("dark");
 });
 
-
-// Main logic after DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   const generateBtn = document.getElementById("generate");
   const downloadBtn = document.getElementById("download-pdf");
   const output = document.getElementById("output");
+  const modal = document.getElementById("alert-modal");
+  const closeModalBtn = document.getElementById("close-modal");
 
   generateBtn.addEventListener("click", async () => {
     const resume = document.getElementById("resume").value;
     const jobDesc = document.getElementById("job").value;
 
     if (!resume || !jobDesc) {
-      alert("Please enter both resume and job description");
+      // Show modal instead of alert
+      modal.classList.remove("hidden");
       return;
     }
 
@@ -32,10 +33,8 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch("/tailor", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ resume, jobDesc })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume, jobDesc }),
       });
 
       const data = await response.json();
@@ -50,8 +49,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // PDF download logic
   downloadBtn.addEventListener("click", () => {
+    const resume = document.getElementById("resume").value.trim();
+    const jobDesc = document.getElementById("job").value.trim();
+
+    if (!resume || !jobDesc) {
+      // Show modal instead of alert
+      modal.classList.remove("hidden");
+      return;
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -65,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const lines = doc.splitTextToSize(text, maxLineWidth);
     let y = 20;
 
-    lines.forEach(line => {
+    lines.forEach((line) => {
       if (y + 10 > pageHeight) {
         doc.addPage();
         y = 20;
@@ -75,5 +82,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     doc.save("tailored_resume.pdf");
+  });
+
+  closeModalBtn.addEventListener("click", () => {
+    modal.classList.add("hidden");
   });
 });
