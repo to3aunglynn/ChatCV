@@ -11,6 +11,13 @@ document.addEventListener("DOMContentLoaded", () => {
   darkToggle.checked = document.documentElement.classList.contains("dark");
 });
 
+function showModal(message) {
+  const modal = document.getElementById("alert-modal");
+  const messageEl = document.getElementById("modal-message");
+  if (messageEl) messageEl.textContent = message;
+  modal.classList.remove("hidden");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const generateBtn = document.getElementById("generate");
   const downloadBtn = document.getElementById("download-pdf");
@@ -18,14 +25,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("alert-modal");
   const closeModalBtn = document.getElementById("close-modal");
 
-  let isTailored = false; // 🧠 NEW FLAG
+  let isTailored = false;
 
   generateBtn.addEventListener("click", async () => {
     const resume = document.getElementById("resume").value.trim();
     const jobDesc = document.getElementById("job").value.trim();
 
     if (!resume || !jobDesc) {
-      modal.classList.remove("hidden");
+      showModal("Please enter both your Resume and Job Description before generating.");
       return;
     }
 
@@ -64,7 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
         rawOutput = rawOutput.trim().replace(/\n{3,}/g, '\n\n');
 
         output.textContent = rawOutput.trim();
-        isTailored = true; // ✅ Mark as tailored
+        isTailored = true;
       } else {
         output.textContent = "No tailored resume received.";
         isTailored = false;
@@ -81,12 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const text = output.textContent.trim();
 
     if (!resume || !jobDesc) {
-      modal.classList.remove("hidden");
+      showModal("Please enter both your Resume and Job Description before downloading.");
       return;
     }
 
     if (!isTailored || !text || text === "Generating tailored resume...") {
-      output.textContent = "Please tailor your resume first by clicking the Generate button before downloading.";
+      showModal("Please tailor your resume first by clicking the Generate button before downloading.");
       return;
     }
 
@@ -122,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
 document.getElementById("resume-upload").addEventListener("change", async (event) => {
   const file = event.target.files[0];
   if (!file || file.type !== "application/pdf") {
-    alert("Please upload a valid PDF file.");
+    showModal("Please upload a valid PDF file.");
     return;
   }
 
@@ -139,7 +146,22 @@ document.getElementById("resume-upload").addEventListener("change", async (event
       text += pageText + "\n";
     }
 
-    document.getElementById("resume").value = text.trim();
+    text = text.trim();
+
+    const isNonsense = (t) => {
+      return (
+        t.length < 30 ||
+        /^(.)\1+$/.test(t) ||
+        !/\b[a-z]{3,}\b/i.test(t)
+      );
+    };
+
+    if (isNonsense(text)) {
+      showModal("The uploaded PDF does not appear to contain a valid resume. Please upload a proper resume PDF.");
+      return;
+    }
+
+    document.getElementById("resume").value = text;
   };
   reader.readAsArrayBuffer(file);
 });
