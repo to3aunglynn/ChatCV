@@ -21,7 +21,16 @@ app.post("/tailor", async (req, res) => {
     const { resume, jobDesc } = req.body;
 
     const prompt = `
-You are an expert resume writer. Rewrite this resume to match this job description, emphasizing relevant skills and keywords:
+You are an expert UK-based CV writer. Rewrite the following resume in a UK-style CV format that matches the given job description. Ensure the output includes:
+
+1. Name and contact details (keep at the top)
+2. A professional summary (concise and role-specific)
+3. Key skills (bullet points)
+4. Work experience (reverse chronological order with dates, employer, job title, responsibilities)
+5. Education
+6. Optional: Certifications, languages, or interests (if present in original resume)
+
+Tailor the language and keywords to match the job description.
 
 Resume:
 ${resume}
@@ -29,8 +38,10 @@ ${resume}
 Job Description:
 ${jobDesc}
 
-Rewrite the resume accordingly.
+Return only the UK-style CV with appropriate formatting.
+
 `;
+
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini", // or "gpt-4" if you have access

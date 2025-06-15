@@ -19,12 +19,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeModalBtn = document.getElementById("close-modal");
 
   generateBtn.addEventListener("click", async () => {
-    const resume = document.getElementById("resume").value;
-    const jobDesc = document.getElementById("job").value;
+    const resume = document.getElementById("resume").value.trim();
+    const jobDesc = document.getElementById("job").value.trim();
 
+    // Show modal if either is empty
     if (!resume || !jobDesc) {
-      // Show modal instead of alert
       modal.classList.remove("hidden");
+      return;
+    }
+
+    // Check for nonsense (basic heuristic: very short, repeated characters, or gibberish)
+    const isNonsense = (text) => {
+      return (
+        text.length < 30 ||                                // too short
+        /^(.)\1+$/.test(text) ||                           // aaa, 1111, zzzz
+        !/\b[a-z]{3,}\b/i.test(text)                       // no real words
+      );
+    };
+
+    if (isNonsense(resume) || isNonsense(jobDesc)) {
+      output.textContent = "Please provide the relevant details so that I can assist you in rewriting the resume effectively to match the job description.";
       return;
     }
 
@@ -40,7 +54,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
 
       if (data.tailoredResume) {
-        output.textContent = data.tailoredResume;
+        let rawOutput = data.tailoredResume;
+
+        // Remove AI-style intros and extra notes
+        rawOutput = rawOutput.replace(/^([\s\S]{0,500}?)?(This rewritten resume|This tailored CV|This all-inclusive resume|Note:|Make sure|Insert your|Be sure to|Rewrite the resume|Summary:|Profile:).*?(\n{2,}|$)/gi, '');
+        rawOutput = rawOutput.replace(/(?:Note|Make sure|Insert your|Be sure to|Feel free to).*$/gi, '');
+        rawOutput = rawOutput.replace(/(\*\*|\-{2,}|__|==|##+)\s*$/gm, '');
+        rawOutput = rawOutput.trim().replace(/\n{3,}/g, '\n\n');
+
+        output.textContent = rawOutput.trim();
       } else {
         output.textContent = "No tailored resume received.";
       }
@@ -48,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
       output.textContent = "Error: " + error.message;
     }
   });
+
 
   downloadBtn.addEventListener("click", () => {
     const resume = document.getElementById("resume").value.trim();
@@ -62,7 +85,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    const text = output.textContent.trim() || "No tailored resume to download.";
+    let text = output.textContent.trim();
+
+    // Also strip any trailing junk from PDF output
+    text = text.replace(/(\*\*|\-{2,}|__|==|##+)\s*$/gm, '').trim();
+
 
     const margin = 10;
     const pageHeight = doc.internal.pageSize.getHeight();
