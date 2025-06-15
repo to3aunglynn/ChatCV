@@ -1,3 +1,4 @@
+// Dark mode toggle
 document.getElementById("dark-toggle").addEventListener("change", (e) => {
   if (e.target.checked) {
     document.documentElement.classList.add("dark");
@@ -45,7 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     if (isNonsense(resume) || isNonsense(jobDesc)) {
-      output.textContent = "Please provide the relevant details so that I can assist you in rewriting the resume effectively to match the job description.";
+      output.textContent =
+        "Please provide the relevant details so that I can assist you in rewriting the resume effectively to match the job description.";
       isTailored = false;
       return;
     }
@@ -65,10 +67,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.tailoredResume) {
         let rawOutput = data.tailoredResume;
 
-        rawOutput = rawOutput.replace(/^([\s\S]{0,500}?)?(This rewritten resume|This tailored CV|This all-inclusive resume|Note:|Make sure|Insert your|Be sure to|Rewrite the resume|Summary:|Profile:).*?(\n{2,}|$)/gi, '');
-        rawOutput = rawOutput.replace(/(?:Note|Make sure|Insert your|Be sure to|Feel free to).*$/gi, '');
-        rawOutput = rawOutput.replace(/(\*\*|\-{2,}|__|==|##+)\s*$/gm, '');
-        rawOutput = rawOutput.trim().replace(/\n{3,}/g, '\n\n');
+        rawOutput = rawOutput.replace(
+          /^([\s\S]{0,500}?)?(This rewritten resume|This tailored CV|This all-inclusive resume|Note:|Make sure|Insert your|Be sure to|Rewrite the resume|Summary:|Profile:).*?(\n{2,}|$)/gi,
+          ""
+        );
+        rawOutput = rawOutput.replace(/(?:Note|Make sure|Insert your|Be sure to|Feel free to).*$/gi, "");
+        rawOutput = rawOutput.replace(/(\*\*|\-{2,}|__|==|##+)\s*$/gm, "");
+        rawOutput = rawOutput.trim().replace(/\n{3,}/g, "\n\n");
 
         output.textContent = rawOutput.trim();
         isTailored = true;
@@ -100,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    const cleanText = text.replace(/(\*\*|\-{2,}|__|==|##+)\s*$/gm, '').trim();
+    const cleanText = text.replace(/(\*\*|\-{2,}|__|==|##+)\s*$/gm, "").trim();
     const margin = 10;
     const pageHeight = doc.internal.pageSize.getHeight();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -126,6 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// PDF Upload & Extraction + Blur + Overlay handling
 document.getElementById("resume-upload").addEventListener("change", async (event) => {
   const file = event.target.files[0];
   if (!file || file.type !== "application/pdf") {
@@ -161,7 +167,67 @@ document.getElementById("resume-upload").addEventListener("change", async (event
       return;
     }
 
-    document.getElementById("resume").value = text;
+    const resumeTextarea = document.getElementById("resume");
+
+    // Put extracted text in textarea
+    resumeTextarea.value = text;
+
+    // Apply blur and disable editing
+    resumeTextarea.classList.add("blurred");
+    resumeTextarea.disabled = true;
+
+    // Create or show overlay with success message
+    let overlay = document.getElementById("resume-overlay");
+    const parent = resumeTextarea.parentElement;
+    parent.style.position = "relative";
+
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "resume-overlay";
+      Object.assign(overlay.style, {
+        position: "absolute",
+        top: "0",
+        left: "0",
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(255, 255, 255, 0.7)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        fontSize: "1.5rem",
+        fontWeight: "600",
+        color: "#2563EB",
+        pointerEvents: "none",
+        borderRadius: "0.5rem",
+        zIndex: "10",
+        userSelect: "none",
+      });
+      overlay.textContent = "PDF uploaded successfully";
+      parent.appendChild(overlay);
+    } else {
+      overlay.style.display = "flex";
+    }
   };
   reader.readAsArrayBuffer(file);
+});
+
+document.getElementById("clear-upload").addEventListener("click", () => {
+  const fileInput = document.getElementById("resume-upload");
+  const resumeTextarea = document.getElementById("resume");
+  const overlay = document.getElementById("resume-overlay");
+
+  // Clear file input
+  fileInput.value = "";
+
+  // Clear resume textarea
+  resumeTextarea.value = "";
+
+  // Remove or hide overlay and blur effect
+  if (overlay) {
+    overlay.style.display = "none";
+  }
+
+  // Remove blur effect and enable editing
+  resumeTextarea.classList.remove("blurred");
+  resumeTextarea.disabled = false;
 });
