@@ -5,6 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ChatCV – AI Resume Tailor</title>
+  <!-- PDF.js (for reading uploaded PDF resumes) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -78,6 +80,16 @@
         <textarea id="resume"
           class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring focus:ring-blue-200 dark:bg-gray-700 dark:text-gray-100 h-40 sm:h-52 md:h-64"
           placeholder="Paste your resume here"></textarea>
+
+
+
+        <label for="resume-upload"
+          class="mt-3 inline-block text-blue-600 dark:text-blue-400 text-sm cursor-pointer hover:underline">
+          Or upload PDF resume
+        </label>
+        <input type="file" id="resume-upload" accept="application/pdf" class="hidden" />
+
+
       </div>
       <div>
         <label class="block text-sm font-medium mb-2">Job Description</label>
