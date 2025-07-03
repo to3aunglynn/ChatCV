@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeModalBtn = document.getElementById("close-modal");
 
   let isTailored = false;
+  let lastRawCVText = '';
 
   generateBtn.addEventListener("click", async () => {
     const resume = document.getElementById("resume").value.trim();
@@ -84,7 +85,10 @@ document.addEventListener("DOMContentLoaded", () => {
         rawOutput = rawOutput.replace(/(\*\*|\-{2,}|__|==|##+)\s*$/gm, "");
         rawOutput = rawOutput.trim().replace(/\n{3,}/g, "\n\n");
 
-        output.textContent = rawOutput.trim();
+        lastRawCVText = rawOutput.trim();
+        // Format for on-screen display
+        output.innerHTML = formatCVTextToHTML(rawOutput.trim());
+        output.style.fontFamily = 'inherit';
         isTailored = true;
       } else {
         output.textContent = "No tailored resume received.";
@@ -100,6 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const resume = document.getElementById("resume").value.trim();
     const jobDesc = document.getElementById("job").value.trim();
     const text = output.textContent.trim();
+    const pdfText = lastRawCVText || text;
 
     if (!resume || !jobDesc) {
       showModal("Please enter both your Resume and Job Description before downloading.");
@@ -114,22 +119,152 @@ document.addEventListener("DOMContentLoaded", () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    const cleanText = text.replace(/(\*\*|\-{2,}|__|==|##+)\s*$/gm, "").trim();
-    const margin = 10;
+    // --- Modern Compact CV PDF Layout ---
+    // Parse the CV into sections and fields
+    const lines = pdfText.split(/\r?\n/);
+    let name = '';
+    let title = '';
+    let contact = [];
+    let sections = {};
+    let currentSection = null;
+    let firstNonEmpty = 0;
+    // Helper to clean headings and lines
+    function cleanHeading(line) {
+      return line.replace(/^[#*\s]+/, '').replace(/[:#*\s]+$/, '').trim();
+    }
+    // Parse name, title, contact
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (!trimmed) continue;
+      if (firstNonEmpty === 0) { name = trimmed; firstNonEmpty++; continue; }
+      if (firstNonEmpty === 1) { title = trimmed; firstNonEmpty++; continue; }
+      if (firstNonEmpty < 4) { contact.push(trimmed); firstNonEmpty++; continue; }
+      break;
+    }
+    // Parse sections (robust to markdown/asterisks)
+    const sectionOrder = [
+      'Personal Statement', 'Personal Profile', 'Professional Overview',
+      'Work experience', 'Experience', 'Employment',
+      'Education', 'Skills', 'Additional Information'
+    ];
+    const sectionRegex = new RegExp(`^(${sectionOrder.join('|')})$`, 'i');
+    let sec = null;
+    for (let i = firstNonEmpty; i < lines.length; i++) {
+      let cleaned = cleanHeading(lines[i]);
+      if (!cleaned) continue;
+      if (sectionRegex.test(cleaned)) {
+        sec = cleaned;
+        if (!sections[sec]) sections[sec] = [];
+        continue;
+      }
+      if (sec) sections[sec].push(lines[i].replace(/^[#*\s]+/, '').replace(/[#*\s]+$/, '').trim());
+    }
+    // PDF layout settings
+    const nameFontSize = 19;
+    const titleFontSize = 13;
+    const headingFontSize = 14;
+    const subheadingFontSize = 12;
+    const baseFontSize = 11;
+    const contactFontSize = 10;
+    const margin = 18;
+    const lineSpacing = baseFontSize * 1.15;
+    let y = 28;
     const pageHeight = doc.internal.pageSize.getHeight();
     const pageWidth = doc.internal.pageSize.getWidth();
     const maxLineWidth = pageWidth - margin * 2;
-
-    const lines = doc.splitTextToSize(cleanText, maxLineWidth);
-    let y = 20;
-
-    lines.forEach((line) => {
-      if (y + 10 > pageHeight) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(line, margin, y);
-      y += 10;
+    doc.setFont('helvetica');
+    // Name (large, bold, left)
+    doc.setFontSize(nameFontSize);
+    doc.setFont(undefined, 'bold');
+    doc.text(name || 'Your Name', margin, y, { align: 'left' });
+    // Contact info (top right, gray)
+    if (contact.length) {
+      doc.setFontSize(contactFontSize);
+      doc.setTextColor(120, 120, 120);
+      let cy = margin;
+      contact.forEach((c) => {
+        doc.text(c, pageWidth - margin, cy, { align: 'right' });
+        cy += contactFontSize + 1;
+      });
+      doc.setTextColor(0, 0, 0);
+    }
+    // Title (smaller, gray, left)
+    if (title) {
+      y += nameFontSize * 0.7;
+      doc.setFontSize(titleFontSize);
+      doc.setTextColor(120, 120, 120);
+      doc.setFont(undefined, 'normal');
+      doc.text(title, margin, y, { align: 'left' });
+      doc.setTextColor(0, 0, 0);
+      y += lineSpacing;
+    } else {
+      y += nameFontSize * 0.7;
+    }
+    // Section rendering
+    Object.keys(sections).forEach((section) => {
+      // Section heading (bold, line)
+      y += lineSpacing;
+      if (y > pageHeight - 20) { doc.addPage(); y = 28; }
+      doc.setFontSize(headingFontSize);
+      doc.setFont(undefined, 'bold');
+      doc.text(section, margin, y, { align: 'left' });
+      // Draw a thin line
+      y += 2;
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += lineSpacing;
+      doc.setFont(undefined, 'normal');
+      // Section content
+      doc.setFontSize(baseFontSize);
+      sections[section].forEach((item) => {
+        // Subheading (job title, degree, etc.)
+        if (/^[A-Z][a-zA-Z\s]+\s\-\s[A-Z][a-zA-Z\s]+$/.test(item) || /^[A-Z][a-zA-Z\s]+$/.test(item)) {
+          y += lineSpacing;
+          if (y > pageHeight - 20) { doc.addPage(); y = 28; }
+          doc.setFontSize(subheadingFontSize);
+          doc.setFont(undefined, 'bold');
+          doc.text(item, margin, y, { align: 'left' });
+          doc.setFont(undefined, 'normal');
+          doc.setFontSize(baseFontSize);
+          y += lineSpacing;
+          return;
+        }
+        // Dates right-aligned (if found)
+        const dateMatch = item.match(/(\d{4}\s*-\s*\d{4}|\d{4}\s*-\s*Present|\d{4})$/);
+        if (dateMatch) {
+          const main = item.replace(dateMatch[0], '').trim();
+          const date = dateMatch[0];
+          y += lineSpacing;
+          if (y > pageHeight - 20) { doc.addPage(); y = 28; }
+          doc.setFont(undefined, 'bold');
+          doc.text(main, margin, y, { align: 'left' });
+          doc.setFont(undefined, 'normal');
+          doc.setFontSize(baseFontSize);
+          doc.setTextColor(120, 120, 120);
+          doc.text(date, pageWidth - margin, y, { align: 'right' });
+          doc.setTextColor(0, 0, 0);
+          y += lineSpacing;
+          return;
+        }
+        // Bullets
+        if (/^[-•\u2022]/.test(item)) {
+          const bulletText = doc.splitTextToSize('• ' + item.replace(/^[-•\u2022]\s*/, ''), maxLineWidth - 8);
+          bulletText.forEach((bt) => {
+            if (y > pageHeight - 20) { doc.addPage(); y = 28; }
+            doc.text(bt, margin + 8, y, { maxWidth: maxLineWidth - 8, align: 'justify' });
+            y += lineSpacing;
+          });
+          return;
+        }
+        // Normal paragraph
+        const paraLines = doc.splitTextToSize(item, maxLineWidth);
+        paraLines.forEach((pl) => {
+          if (y > pageHeight - 20) { doc.addPage(); y = 28; }
+          doc.text(pl, margin, y, { maxWidth: maxLineWidth, align: 'justify' });
+          y += lineSpacing;
+        });
+      });
     });
 
     doc.save("tailored_resume.pdf");
@@ -255,3 +390,58 @@ document.getElementById("clear-upload").addEventListener("click", () => {
   resumeTextarea.classList.remove("blurred");
   resumeTextarea.disabled = false;
 });
+
+function formatCVTextToHTML(cvText) {
+  // Split into lines
+  const lines = cvText.split(/\r?\n/);
+  let html = '';
+  let inList = false;
+  const headingRegex = /^(Name and contact details|Personal Profile|Professional Overview|Education|Experience|Employment|Skills|Additional Information)[:]?$/i;
+  const nameRegex = /^([A-Z][a-z]+\s+[A-Z][a-z]+.*)$/; // crude name line
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (inList) {
+        html += '</ul>';
+        inList = false;
+      }
+      html += '<div style="height: 0.7em"></div>';
+      return;
+    }
+    if (headingRegex.test(trimmed)) {
+      if (inList) {
+        html += '</ul>';
+        inList = false;
+      }
+      html += `<div style="font-weight: bold; font-size: 1.1em; margin-top: 1em; margin-bottom: 0.3em;">${trimmed.replace(/:$/, '')}</div>`;
+      return;
+    }
+    if (nameRegex.test(trimmed) && idx === 0) {
+      html += `<div style="font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em;">${trimmed}</div>`;
+      return;
+    }
+    // Bullet points
+    if (/^[-•\u2022]/.test(trimmed)) {
+      if (!inList) {
+        html += '<ul style="margin-left: 1.2em; margin-bottom: 0.3em;">';
+        inList = true;
+      }
+      html += `<li>${trimmed.replace(/^[-•\u2022]\s*/, '')}</li>`;
+      return;
+    }
+    // If line looks like a list item (e.g. starts with a year or job title)
+    if (/^\d{4}/.test(trimmed) || /^\s*\*/.test(trimmed)) {
+      if (!inList) {
+        html += '<ul style="margin-left: 1.2em; margin-bottom: 0.3em;">';
+        inList = true;
+      }
+      html += `<li>${trimmed}</li>`;
+      return;
+    }
+    // Normal paragraph
+    html += `<div>${trimmed}</div>`;
+  });
+  if (inList) html += '</ul>';
+  return html;
+}

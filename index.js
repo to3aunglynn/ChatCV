@@ -40,7 +40,7 @@ ${resume}
 Job Description:
 ${jobDesc}
 
-Return only the UK-style CV especially for edinburgh with appropriate formatting.
+Return only the UK-style CV especially for edinburgh with appropriate formatting."
 
 `;
 
