@@ -217,54 +217,81 @@ document.addEventListener("DOMContentLoaded", () => {
       doc.setFont(undefined, 'normal');
       // Section content
       doc.setFontSize(baseFontSize);
-      sections[section].forEach((item) => {
-        // Subheading (job title, degree, etc.)
-        if (/^[A-Z][a-zA-Z\s]+\s\-\s[A-Z][a-zA-Z\s]+$/.test(item) || /^[A-Z][a-zA-Z\s]+$/.test(item)) {
-          y += lineSpacing;
-          if (y > pageHeight - 20) { doc.addPage(); y = 28; }
-          doc.setFontSize(subheadingFontSize);
+      if (section.toLowerCase().includes('education')) {
+        // Improved Education block rendering
+        let i = 0;
+        const ed = sections[section];
+        while (i < ed.length) {
+          // Try to group degree, institution, date
+          const degree = ed[i] || '';
+          const institution = (i + 1 < ed.length && !/(\d{4}\s*-\s*\d{4}|\d{4}\s*-\s*Present|\d{4})$/.test(ed[i+1])) ? ed[i+1] : '';
+          const date = (i + 2 < ed.length && /(\d{4}\s*-\s*\d{4}|\d{4}\s*-\s*Present|\d{4})$/.test(ed[i+2])) ? ed[i+2] : ((i + 1 < ed.length && /(\d{4}\s*-\s*\d{4}|\d{4}\s*-\s*Present|\d{4})$/.test(ed[i+1])) ? ed[i+1] : '');
+          // Render degree (bold), institution (normal), date (right)
+          let entryLine = degree;
           doc.setFont(undefined, 'bold');
-          doc.text(item, margin, y, { align: 'left' });
+          doc.text(entryLine, margin, y, { align: 'left' });
           doc.setFont(undefined, 'normal');
-          doc.setFontSize(baseFontSize);
-          y += lineSpacing;
-          return;
+          if (institution) {
+            doc.text(institution, margin, y + lineSpacing, { align: 'left' });
+          }
+          if (date) {
+            doc.setTextColor(120, 120, 120);
+            doc.text(date, pageWidth - margin, institution ? y + lineSpacing : y, { align: 'right' });
+            doc.setTextColor(0, 0, 0);
+          }
+          y += institution ? (lineSpacing * 2) : lineSpacing;
+          i += 1 + (institution ? 1 : 0) + (date ? 1 : 0);
         }
-        // Dates right-aligned (if found)
-        const dateMatch = item.match(/(\d{4}\s*-\s*\d{4}|\d{4}\s*-\s*Present|\d{4})$/);
-        if (dateMatch) {
-          const main = item.replace(dateMatch[0], '').trim();
-          const date = dateMatch[0];
-          y += lineSpacing;
-          if (y > pageHeight - 20) { doc.addPage(); y = 28; }
-          doc.setFont(undefined, 'bold');
-          doc.text(main, margin, y, { align: 'left' });
-          doc.setFont(undefined, 'normal');
-          doc.setFontSize(baseFontSize);
-          doc.setTextColor(120, 120, 120);
-          doc.text(date, pageWidth - margin, y, { align: 'right' });
-          doc.setTextColor(0, 0, 0);
-          y += lineSpacing;
-          return;
-        }
-        // Bullets
-        if (/^[-•\u2022]/.test(item)) {
-          const bulletText = doc.splitTextToSize('• ' + item.replace(/^[-•\u2022]\s*/, ''), maxLineWidth - 8);
-          bulletText.forEach((bt) => {
+      } else {
+        sections[section].forEach((item) => {
+          // Subheading (job title, degree, etc.)
+          if (/^[A-Z][a-zA-Z\s]+\s\-\s[A-Z][a-zA-Z\s]+$/.test(item) || /^[A-Z][a-zA-Z\s]+$/.test(item)) {
+            y += lineSpacing;
             if (y > pageHeight - 20) { doc.addPage(); y = 28; }
-            doc.text(bt, margin + 8, y, { maxWidth: maxLineWidth - 8, align: 'justify' });
+            doc.setFontSize(subheadingFontSize);
+            doc.setFont(undefined, 'bold');
+            doc.text(item, margin, y, { align: 'left' });
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(baseFontSize);
+            y += lineSpacing;
+            return;
+          }
+          // Dates right-aligned (if found)
+          const dateMatch = item.match(/(\d{4}\s*-\s*\d{4}|\d{4}\s*-\s*Present|\d{4})$/);
+          if (dateMatch) {
+            const main = item.replace(dateMatch[0], '').trim();
+            const date = dateMatch[0];
+            y += lineSpacing;
+            if (y > pageHeight - 20) { doc.addPage(); y = 28; }
+            doc.setFont(undefined, 'bold');
+            doc.text(main, margin, y, { align: 'left' });
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(baseFontSize);
+            doc.setTextColor(120, 120, 120);
+            doc.text(date, pageWidth - margin, y, { align: 'right' });
+            doc.setTextColor(0, 0, 0);
+            y += lineSpacing;
+            return;
+          }
+          // Bullets
+          if (/^[-•\u2022]/.test(item)) {
+            const bulletText = doc.splitTextToSize('• ' + item.replace(/^[-•\u2022]\s*/, ''), maxLineWidth - 8);
+            bulletText.forEach((bt) => {
+              if (y > pageHeight - 20) { doc.addPage(); y = 28; }
+              doc.text(bt, margin + 8, y, { maxWidth: maxLineWidth - 8, align: 'justify' });
+              y += lineSpacing;
+            });
+            return;
+          }
+          // Normal paragraph
+          const paraLines = doc.splitTextToSize(item, maxLineWidth);
+          paraLines.forEach((pl) => {
+            if (y > pageHeight - 20) { doc.addPage(); y = 28; }
+            doc.text(pl, margin, y, { maxWidth: maxLineWidth, align: 'justify' });
             y += lineSpacing;
           });
-          return;
-        }
-        // Normal paragraph
-        const paraLines = doc.splitTextToSize(item, maxLineWidth);
-        paraLines.forEach((pl) => {
-          if (y > pageHeight - 20) { doc.addPage(); y = 28; }
-          doc.text(pl, margin, y, { maxWidth: maxLineWidth, align: 'justify' });
-          y += lineSpacing;
         });
-      });
+      }
     });
 
     doc.save("tailored_resume.pdf");
