@@ -1,9 +1,18 @@
 // Dark mode toggle
-document.getElementById("dark-toggle").addEventListener("change", (e) => {
+const darkToggle = document.getElementById("dark-toggle");
+darkToggle.addEventListener("change", (e) => {
   if (e.target.checked) {
     document.documentElement.classList.add("dark");
   } else {
     document.documentElement.classList.remove("dark");
+  }
+  // Update overlay color if present
+  const overlay = document.getElementById("resume-overlay");
+  if (overlay) {
+    const isDark = document.documentElement.classList.contains("dark");
+    overlay.style.backgroundColor = isDark ? "rgba(30, 41, 59, 0.95)" : "rgba(255, 255, 255, 0.7)";
+    overlay.style.color = isDark ? "#60a5fa" : "#2563EB";
+    overlay.style.border = isDark ? "1.5px solid #334155" : "none";
   }
 });
 
@@ -168,6 +177,8 @@ document.getElementById("resume-upload").addEventListener("change", async (event
     }
 
     const resumeTextarea = document.getElementById("resume");
+    // The wrapper div is the parent of the textarea
+    const wrapper = resumeTextarea.parentElement;
 
     // Put extracted text in textarea
     resumeTextarea.value = text;
@@ -178,34 +189,47 @@ document.getElementById("resume-upload").addEventListener("change", async (event
 
     // Create or show overlay with success message
     let overlay = document.getElementById("resume-overlay");
-    const parent = resumeTextarea.parentElement;
-    parent.style.position = "relative";
+    wrapper.style.position = "relative";
+
+    // Determine background and text color based on dark mode
+    const isDark = document.documentElement.classList.contains("dark");
+    const overlayBg = isDark ? "rgba(30, 41, 59, 0.95)" : "rgba(255, 255, 255, 0.7)"; // darker slate-800 for dark
+    const overlayColor = isDark ? "#60a5fa" : "#2563EB"; // blue-400 for dark, blue-600 for light
+    const overlayBorder = isDark ? "1.5px solid #334155" : "none";
 
     if (!overlay) {
       overlay = document.createElement("div");
       overlay.id = "resume-overlay";
       Object.assign(overlay.style, {
         position: "absolute",
-        top: "0",
-        left: "0",
-        width: "100%",
-        height: "100%",
-        backgroundColor: "rgba(255, 255, 255, 0.7)",
+        top: resumeTextarea.offsetTop + "px",
+        left: resumeTextarea.offsetLeft + "px",
+        width: resumeTextarea.offsetWidth + "px",
+        height: resumeTextarea.offsetHeight + "px",
+        backgroundColor: overlayBg,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         fontSize: "1.5rem",
         fontWeight: "600",
-        color: "#2563EB",
+        color: overlayColor,
         pointerEvents: "none",
         borderRadius: "0.5rem",
         zIndex: "10",
         userSelect: "none",
+        transition: "background-color 0.3s, color 0.3s",
       });
       overlay.textContent = "PDF uploaded successfully";
-      parent.appendChild(overlay);
+      wrapper.appendChild(overlay);
     } else {
       overlay.style.display = "flex";
+      // Update overlay size/position and color in case of resize or mode change
+      overlay.style.top = resumeTextarea.offsetTop + "px";
+      overlay.style.left = resumeTextarea.offsetLeft + "px";
+      overlay.style.width = resumeTextarea.offsetWidth + "px";
+      overlay.style.height = resumeTextarea.offsetHeight + "px";
+      overlay.style.backgroundColor = overlayBg;
+      overlay.style.color = overlayColor;
     }
   };
   reader.readAsArrayBuffer(file);
